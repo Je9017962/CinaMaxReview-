@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getMovies, getReviewsByMovie } from '../localStorage.js'
+import { getMovies, getReviewsByMovie, getSuggestions } from '../localStorage.js'
 import ThemeToggle from '../ThemeToggle.jsx'
 import { useUser } from '../UserContext.jsx'
 import AuthModal from '../AuthModal.jsx'
@@ -8,10 +8,11 @@ import AuthModal from '../AuthModal.jsx'
 const GENRES = [
   'All', 'Drama', 'Romance', 'Horror', 'Thriller',
   'Comedy', 'Sci-Fi', 'Action', 'Animation', 'Adventure',
+  'Mystery', 'Fantasy', 'Documentary',
 ]
 
 export default function MovieListPage() {
-  const movies  = getMovies()
+  const movies = getMovies()
   const [search,  setSearch]  = useState('')
   const [filter,  setFilter]  = useState('All')
 
@@ -82,6 +83,8 @@ export default function MovieListPage() {
       </section>
 
       {/* Grid */}
+      <SuggestionsSection />
+
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 28px 60px' }}>
         {search && (
           <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 20, fontFamily: 'var(--font-mono)' }}>
@@ -162,6 +165,98 @@ function MovieCard({ movie }) {
 }
 
 // ── Shared Header — exported for all pages ────────────────────────────────────
+// ── Suggestions Section ───────────────────────────────────────────────────────
+export function SuggestionsSection() {
+  const { currentUser } = useUser()
+  if (!currentUser) return null
+
+  const suggestions = getSuggestions(currentUser.username, 6)
+  if (suggestions.length === 0) return null
+
+  return (
+    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 28px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--color-text)' }}>
+            ✨ Recommended For You
+          </h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
+            Based on your review history
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
+        {suggestions.map((movie) => (
+          <SuggestionCard key={movie.id} movie={movie} />
+        ))}
+      </div>
+
+      <div style={{ height: 1, background: 'var(--color-border)', margin: '40px 0 0' }} />
+    </section>
+  )
+}
+
+function SuggestionCard({ movie }) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <Link
+      to={`/movie/${movie.id}`}
+      style={{ textDecoration: 'none', display: 'block' }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{
+        background: 'var(--color-card)',
+        border: `1px solid ${hovered ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        borderRadius: 14,
+        overflow: 'hidden',
+        transition: 'all 0.2s',
+        transform: hovered ? 'translateY(-3px)' : 'none',
+        boxShadow: hovered ? 'var(--shadow-card-hover)' : 'none',
+      }}>
+        {/* Poster */}
+        <div style={{ aspectRatio: '2/3', background: 'var(--color-bg-deep)', overflow: 'hidden', position: 'relative' }}>
+          {movie.poster ? (
+            <img
+              src={movie.poster}
+              alt={movie.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🎬</div>
+          )}
+          {/* Decade badge */}
+          {movie.decade && (
+            <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', color: '#fff', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '3px 7px', borderRadius: 6, letterSpacing: 0.5 }}>
+              {movie.decade}
+            </div>
+          )}
+        </div>
+        {/* Info */}
+        <div style={{ padding: '10px 12px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-display)', lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            {movie.title}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
+            {movie.year}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+            {(movie.genre || []).slice(0, 2).map((g) => (
+              <span key={g} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--color-bg-deep)', color: 'var(--color-text-muted)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                {g}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+
 export function Header() {
   const { currentUser, signOut } = useUser()
   const navigate = useNavigate()
