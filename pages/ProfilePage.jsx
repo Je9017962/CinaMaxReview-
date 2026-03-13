@@ -4,13 +4,12 @@ import { useUser } from '../UserContext.jsx'
 import { getReviews, getMovies } from '../localStorage.js'
 import { Header } from './MovieListPage.jsx'
 import AuthModal from '../AuthModal.jsx'
-// navigate is used in the outer ProfilePage component for post-signout redirect
 
 const AVATAR_EMOJIS = ['🎬', '🍿', '🎭', '🎞️', '🎥', '⭐', '🌊', '🔥', '👁️', '🎪']
 
 export default function ProfilePage() {
   const { currentUser, updateProfile, signOut } = useUser()
-  const navigate   = useNavigate()
+  const navigate = useNavigate()
   const [showAuth, setShowAuth] = useState(false)
 
   if (!currentUser) {
@@ -37,22 +36,18 @@ export default function ProfilePage() {
     )
   }
 
-  const handleSignOut = () => {
-    signOut()
-    navigate('/')
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', fontFamily: 'var(--font-body)' }}>
       <Header />
-      <ProfileContent user={currentUser} updateProfile={updateProfile} onSignOut={handleSignOut} />
+      <ProfileContent user={currentUser} updateProfile={updateProfile} signOut={signOut} navigate={navigate} />
     </div>
   )
 }
 
-function ProfileContent({ user, updateProfile, onSignOut }) {
+function ProfileContent({ user, updateProfile, signOut, navigate }) {
   const allReviews = getReviews().filter((r) => r.user === user.username)
   const allMovies  = getMovies()
+  const uploadedCount = allMovies.filter((m) => m.userAdded && m.addedBy === user.username).length
   const movieById  = (id) => allMovies.find((m) => String(m.id) === String(id))
 
   const avgRating = allReviews.length
@@ -179,7 +174,7 @@ function ProfileContent({ user, updateProfile, onSignOut }) {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button onClick={() => setEditing(true)} style={primaryBtnStyle}>✏ Edit Profile</button>
                 <button
-                  onClick={() => onSignOut()}
+                  onClick={() => { signOut(); }}
                   style={{ ...ghostBtnStyle, color: 'var(--color-error)', borderColor: 'var(--color-error-border)' }}
                 >
                   ⟵ Sign Out
@@ -203,6 +198,7 @@ function ProfileContent({ user, updateProfile, onSignOut }) {
           { label: 'REVIEWS', value: allReviews.length, emoji: '📝' },
           { label: 'AVG RATING', value: avgRating ? `★ ${avgRating}` : '—', emoji: '⭐' },
           { label: 'TOP GENRE', value: topGenres[0] || '—', emoji: '🎭' },
+          { label: 'FILMS ADDED', value: uploadedCount || 0, emoji: '🎬' },
         ].map(({ label, value, emoji }) => (
           <div key={label} style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 14, padding: '18px 16px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 6 }}>{emoji}</div>
@@ -281,6 +277,49 @@ function ProfileContent({ user, updateProfile, onSignOut }) {
           )}
         </div>
       )}
+
+      {/* ── Movies I Uploaded ── */}
+      {(() => {
+        const uploadedMovies = allMovies.filter((m) => m.userAdded && m.addedBy === user.username)
+        return uploadedMovies.length > 0 ? (
+          <div style={{ marginTop: 40 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 22 }}>🎬 Movies I Added</h2>
+              <span style={{ fontSize: 13, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
+                {uploadedMovies.length} film{uploadedMovies.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 }}>
+              {uploadedMovies.map((movie) => (
+                <Link key={movie.id} to={`/movie/${movie.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+                  <div style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.transform = 'none' }}
+                  >
+                    <div style={{ aspectRatio: '2/3', background: 'var(--color-bg-deep)', overflow: 'hidden' }}>
+                      {movie.poster ? (
+                        <img src={movie.poster} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🎬</div>
+                      )}
+                    </div>
+                    <div style={{ padding: '10px 12px' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-display)', lineHeight: 1.3, marginBottom: 3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {movie.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>{movie.year}</div>
+                      <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 6, padding: '2px 7px' }}>
+                        <span style={{ fontSize: 10, color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>✓ ADDED</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null
+      })()}
+
     </main>
   )
 }
