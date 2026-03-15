@@ -1,0 +1,146 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CinaMax Review — Firestore Security Rules
+//
+// Collections:
+//   /movies/{movieId}   — film catalogue
+//   /reviews/{reviewId} — user and guest reviews
+//   /users/{uid}        — profile documents keyed by Firebase Auth UID
+//
+// Deploy:
+//   firebase deploy --only firestore:rules
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    // True when the request comes from a signed-in Firebase Auth user.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // True when the signed-in user's UID matches the given uid argument.
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // True when the incoming document's `uid` field matches the caller.
+    // Used to validate ownership on review creates.
+    function isReviewAuthor() {
+      return isAuthenticated()
+          && request.resource.data.uid == request.auth.uid;
+    }
+
+    // True when the existing document's `uid` field matches the caller.
+    // Used to validate ownership on review updates and deletes.
+    function ownsReview() {
+      return isAuthenticated()
+          && resource.data.uid == request.auth.uid;
+    }
+
+    // Validates that an incoming review document has the required fields
+    // and that the stars value is within the allowed range (1–5).
+    function isValidReview() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['movieId', 'stars', 'text', 'uid'])
+          && d.stars is int
+          && d.stars >= 1
+          && d.stars <= 5
+          && d.text is string
+          && d.text.size() >= 10
+          && d.text.size() <= 1000;
+    }
+
+    // Validates that an update only touches the fields users are allowed
+    // to change (stars and text). Prevents a client from swapping the uid.
+    function isValidReviewUpdate() {
+      let allowed = ['stars', 'text', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(allowed);
+    }
+
+    // ── /movies ─────────────────────────────────────────────────────────────
+    //
+    // • Anyone (including unauthenticated visitors) can read the catalogue.
+    // • Only authenticated users can submit new movies.
+    // • Updates and deletes are restricted to the user who added the movie
+    //   (matched by the `addedByUid` field written by addMovie() in
+    //   firestoreService.js).
+    // • The seed batch-write that runs on first load uses addedByUid: null
+    //   (server-side, not triggered by a client), so seed documents are
+    //   effectively immutable from the client.
+
+    match /movies/{movieId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated()
+                    && request.resource.data.keys().hasAll([
+                         'title', 'year', 'director', 'genre', 'synopsis'
+                       ])
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0;
+
+      allow update, delete: if isAuthenticated()
+                             && resource.data.addedByUid == request.auth.uid;
+    }
+
+    // ── /reviews ─────────────────────────────────────────────────────────────
+    //
+    // • Anyone can read reviews (shown publicly on movie detail pages).
+    // • Only authenticated users can create a review, and the review's `uid`
+    //   field must match the caller's Auth UID (prevents spoofing another
+    //   user's identity).
+    //   Guest reviews (uid: null) are intentionally disallowed from the
+    //   client once security rules are active — they can only be written
+    //   from a trusted server context if needed.
+    // • Only the original author (matched by the stored `uid` field) can
+    //   update or delete their review.
+    // • Updates are restricted to `stars`, `text`, and `updatedAt` only —
+    //   a user cannot change the `movieId`, `uid`, or any other metadata.
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+
+      allow create: if isReviewAuthor()
+                    && isValidReview();
+
+      allow update: if ownsReview()
+                    && isValidReviewUpdate();
+
+      allow delete: if ownsReview();
+    }
+
+    // ── /users ───────────────────────────────────────────────────────────────
+    //
+    // • A user can only read their own profile document.
+    //   This prevents one user from looking up another user's email address
+    //   or profile data.
+    // • A user can create their own document (called by signUp() immediately
+    //   after Firebase Auth account creation).
+    // • A user can update their own document, but only the allowed profile
+    //   fields (displayName, bio, avatarEmoji). The email and joinedAt fields
+    //   are set once at sign-up and cannot be changed via the client.
+    // • Deletes are disallowed from the client. Use the Firebase Admin SDK
+    //   (server-side) to remove accounts if needed.
+
+    match /users/{uid} {
+      allow read:   if isOwner(uid);
+
+      allow create: if isOwner(uid)
+                    && request.resource.data.keys().hasAll([
+                         'username', 'email', 'displayName', 'joinedAt'
+                       ]);
+
+      allow update: if isOwner(uid)
+                    && request.resource.data.diff(resource.data)
+                         .affectedKeys()
+                         .hasOnly(['displayName', 'bio', 'avatarEmoji']);
+
+      allow delete: if false;
+    }
+
+  }
+}

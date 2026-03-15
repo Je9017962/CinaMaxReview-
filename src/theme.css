@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+/* ── Dark theme (default) ─────────────────────────────────────────────────── */
+:root,
+[data-theme='dark'] {
+  --color-bg:             #0a0f1e;
+  --color-bg-deep:        #080c18;
+  --color-card:           #0f1a2e;
+  --color-card2:          #152038;
+  --color-header-bg:      rgba(8, 12, 28, 0.97);
+  --color-border:         rgba(56, 189, 248, 0.15);
+  --color-border-mid:     rgba(56, 189, 248, 0.28);
+
+  /* Text — all WCAG AA contrast ≥ 4.5:1 against dark backgrounds */
+  --color-text:           #f0f4ff;       /* contrast ~14:1 on #0a0f1e */
+  --color-text-muted:     #b8c8e0;       /* contrast ~7.5:1 on #0a0f1e */
+  --color-text-faint:     #8499b8;       /* contrast ~4.6:1 on #0a0f1e */
+  --color-text-meta:      #90a8c4;       /* contrast ~5.2:1 on #0a0f1e */
+
+  --color-primary:        #3b82f6;       /* brighter blue — better on dark */
+  --color-primary-deep:   #2563eb;
+  --color-accent:         #38bdf8;
+  --color-star:           #fbbf24;
+  --color-star-empty:     #2a3a58;
+
+  --color-input-bg:       rgba(255, 255, 255, 0.07);
+  --color-input-border:   rgba(255, 255, 255, 0.22);
+  --color-input-text:     #f0f4ff;
+
+  --color-success:        #4ade80;
+  --color-success-bg:     rgba(74, 222, 128, 0.10);
+  --color-success-border: rgba(74, 222, 128, 0.30);
+  --color-error:          #f87171;
+  --color-error-bg:       rgba(248, 113, 113, 0.10);
+  --color-error-border:   rgba(248, 113, 113, 0.35);
+
+  --color-guest-bg:       rgba(251, 191, 36, 0.08);
+  --color-guest-border:   rgba(251, 191, 36, 0.25);
+  --color-guest-text:     #fbbf24;
+
+  --shadow-card:          0 4px 30px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover:    0 20px 60px rgba(59, 130, 246, 0.30);
+  --shadow-modal:         0 0 80px rgba(59, 130, 246, 0.25);
+
+  --font-body:            'Crimson Text', Georgia, serif;
+  --font-display:         'Playfair Display', Georgia, serif;
+  --font-mono:            'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Light theme ──────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+  --color-bg:             #f5f7fc;
+  --color-bg-deep:        #eaecf5;
+  --color-card:           #ffffff;
+  --color-card2:          #f0f3fa;
+  --color-header-bg:      rgba(255, 255, 255, 0.97);
+  --color-border:         rgba(26, 86, 219, 0.15);
+  --color-border-mid:     rgba(26, 86, 219, 0.28);
+
+  /* Text — all WCAG AA contrast ≥ 4.5:1 against light backgrounds */
+  --color-text:           #0d1526;       /* contrast ~16:1 on #f5f7fc */
+  --color-text-muted:     #2d3a52;       /* contrast ~9:1  — was too light before */
+  --color-text-faint:     #4a5568;       /* contrast ~5.5:1 */
+  --color-text-meta:      #3d4f6b;       /* contrast ~6.5:1 */
+
+  --color-primary:        #1a56db;
+  --color-primary-deep:   #1040b0;
+  --color-accent:         #1a56db;
+  --color-star:           #b45309;       /* darker amber — better contrast on white */
+  --color-star-empty:     #c4cfe8;
+
+  --color-input-bg:       #ffffff;
+  --color-input-border:   rgba(26, 86, 219, 0.28);
+  --color-input-text:     #0d1526;
+
+  --color-success:        #15803d;       /* darker green — better contrast */
+  --color-success-bg:     rgba(21, 128, 61, 0.06);
+  --color-success-border: rgba(21, 128, 61, 0.25);
+  --color-error:          #b91c1c;       /* darker red — better contrast on white */
+  --color-error-bg:       rgba(185, 28, 28, 0.06);
+  --color-error-border:   rgba(185, 28, 28, 0.28);
+
+  --color-guest-bg:       rgba(180, 83, 9, 0.06);
+  --color-guest-border:   rgba(180, 83, 9, 0.22);
+  --color-guest-text:     #92400e;       /* dark amber — readable on white */
+
+  --shadow-card:          0 2px 14px rgba(26, 86, 219, 0.09);
+  --shadow-card-hover:    0 12px 40px rgba(26, 86, 219, 0.18);
+  --shadow-modal:         0 0 60px rgba(26, 86, 219, 0.14);
+
+  --font-body:            'Crimson Text', Georgia, serif;
+  --font-display:         'Playfair Display', Georgia, serif;
+  --font-mono:            'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+
+/* ── Base resets ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Inputs always use explicit text color for accessibility */
+input, textarea, select {
+  color: var(--color-input-text) !important;
+  background: var(--color-input-bg);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-faint);
+  opacity: 1; /* Firefox fix */
+}
+
+/* Focus rings — visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+header, nav, footer, main, section, aside {
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 3px; }
+
+/* Headings */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+/* Links */
+a { color: inherit; text-decoration: none; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(14px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}

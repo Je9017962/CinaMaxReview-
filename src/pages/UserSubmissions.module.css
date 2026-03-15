@@ -1,0 +1,360 @@
+/* ── Shell ────────────────────────────────────────────────────────────────── */
+.shell {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 28px 80px;
+}
+
+.pageTitle {
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 900;
+  font-family: var(--font-display);
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.pageSubtitle {
+  color: var(--color-text-faint);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  margin: 0 0 32px;
+  font-weight: 500;
+}
+
+/* ── Review list ──────────────────────────────────────────────────────────── */
+.list { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 20px 22px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--color-border-mid); }
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.movieInfo {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.poster {
+  width: 46px;
+  height: 62px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-card2);
+}
+
+.movieTitle {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--color-text);
+  text-decoration: none;
+  line-height: 1.25;
+  display: block;
+}
+.movieTitle:hover { color: var(--color-accent); text-decoration: underline; }
+
+.movieMeta {
+  font-size: 12px;
+  color: var(--color-text-meta);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* ── Stars display ────────────────────────────────────────────────────────── */
+.stars { display: flex; gap: 2px; margin: 10px 0 6px; }
+.star { font-size: 17px; color: var(--color-star-empty); }
+.star.active { color: var(--color-star); }
+
+/* ── Review body ──────────────────────────────────────────────────────────── */
+.reviewText {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  line-height: 1.75;
+  margin: 0 0 10px;
+}
+.reviewDate {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* ── Card action buttons ──────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.editBtn {
+  background: transparent;
+  border: 1px solid var(--color-border-mid);
+  border-radius: 8px;
+  color: var(--color-accent);
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.editBtn:hover { background: rgba(26,86,219,0.08); border-color: var(--color-accent); }
+.editBtn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.deleteBtn {
+  background: transparent;
+  border: 1px solid var(--color-error-border);
+  border-radius: 8px;
+  color: var(--color-error);
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.deleteBtn:hover { background: var(--color-error-bg); }
+.deleteBtn:focus-visible { outline: 2px solid var(--color-error); outline-offset: 2px; }
+
+/* ── Inline edit form ─────────────────────────────────────────────────────── */
+.editForm {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.2s ease;
+}
+
+.editStars { display: flex; gap: 6px; }
+.editStar {
+  font-size: 30px;
+  cursor: pointer;
+  color: var(--color-star-empty);
+  transition: color 0.15s, transform 0.12s;
+  user-select: none;
+  border-radius: 4px;
+}
+.editStar.active { color: var(--color-star); }
+.editStar:hover  { transform: scale(1.15); }
+.editStar:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+.starLabel {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+  min-height: 18px;
+  font-weight: 600;
+}
+
+.editTextarea {
+  width: 100%;
+  background: var(--color-input-bg);
+  border: 1.5px solid var(--color-input-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  outline: none;
+  resize: vertical;
+  line-height: 1.7;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.editTextarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+.editHint {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  text-align: right;
+  font-weight: 500;
+}
+.editHint.warn  { color: #d97706; }
+.editHint.limit { color: var(--color-error); }
+
+.editError {
+  font-size: 13px;
+  color: var(--color-error);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.editActions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.saveBtn {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 9px 22px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  transition: opacity 0.2s;
+}
+.saveBtn:hover:not(:disabled) { opacity: 0.85; }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.saveBtn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+.cancelBtn {
+  background: transparent;
+  border: 1.5px solid var(--color-border-mid);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  padding: 9px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: border-color 0.2s, color 0.2s;
+}
+.cancelBtn:hover { border-color: var(--color-text-muted); color: var(--color-text); }
+
+/* ── Delete confirmation ──────────────────────────────────────────────────── */
+.deleteConfirm {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--color-error);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  animation: fadeIn 0.2s ease;
+}
+.deleteConfirm span { flex: 1; color: var(--color-text-muted); font-weight: 500; font-family: var(--font-body); font-size: 14px; }
+
+.confirmYes {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 7px;
+  color: var(--color-error);
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: background 0.2s;
+}
+.confirmYes:hover { background: rgba(185,28,28,0.18); }
+
+.confirmNo {
+  background: transparent;
+  border: 1.5px solid var(--color-border-mid);
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+.confirmNo:hover { color: var(--color-text); }
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 70px 0;
+}
+.emptyIcon  { font-size: 48px; margin-bottom: 16px; }
+.emptyTitle { font-size: 20px; font-weight: 700; font-family: var(--font-display); color: var(--color-text); margin: 0 0 8px; }
+.emptyText  { font-size: 15px; color: var(--color-text-muted); margin: 0 0 24px; line-height: 1.6; }
+
+.writeBtn {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-deep));
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  padding: 12px 28px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity 0.2s;
+}
+.writeBtn:hover { opacity: 0.85; }
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-mid);
+  border-radius: 10px;
+  padding: 13px 26px;
+  color: var(--color-success);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  box-shadow: var(--shadow-modal);
+  animation: slideUp 0.3s ease, fadeOut 0.4s ease 2s forwards;
+  z-index: 999;
+  white-space: nowrap;
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateX(-50%) translateY(16px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .page       { padding: 32px 18px 60px; }
+  .cardHeader { flex-direction: column; }
+  .actions    { align-self: flex-end; }
+}
