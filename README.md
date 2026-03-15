@@ -1,108 +1,80 @@
-<h1>CinaMaxReview — Complete Tier Web Application</h1>
+# CinaMaxReview — Complete Tier Web Application
 
-<p>
-CinaMaxReview is a full-stack movie review platform that allows users to browse films,
-read community reviews, and contribute their own reviews. The application supports
-authenticated user accounts, persistent cloud-stored reviews, and a responsive interface
-designed for both desktop and mobile users.
-</p>
+CinaMaxReview is a full-stack movie review platform that allows users to browse films, read community reviews, and contribute their own reviews. The application supports authenticated user accounts, persistent cloud-stored reviews, and a responsive interface designed for both desktop and mobile users.
 
-<p>
-This project demonstrates a complete AI-assisted development workflow, including planning,
-debugging, backend integration, and iterative refinement.
-</p>
+This project demonstrates a complete AI-assisted development workflow, including planning, debugging, backend integration, and iterative refinement.
 
-<hr>
+---
 
-<h2>Live Demo</h2>
+## Live Demo
 
-<p><strong>Netlify Deployment</strong></p>
+**[https://cinamaxreview.netlify.app/](https://cinamaxreview.netlify.app/)**
 
-<p>
-<a href="https://cinamaxreview.netlify.app/" target="_blank">
-https://cinamaxreview.netlify.app/
-</a>
-</p>
+---
 
-<hr>
+## Features
 
-<h2>Features</h2>
+### Core Features
+- Browse a list of movies with posters and ratings
+- View detailed movie information and community reviews
+- Submit star-rated reviews for any movie (authenticated or guest)
+- Add custom movies not already in the catalogue
+- View, edit, and delete your own submitted reviews (My Submissions)
+- Edit your profile, display name, bio, and avatar emoji
+- Toggle between light and dark mode (persisted across sessions)
+- Fully responsive user interface for desktop and mobile
+- AI-assisted review suggestions powered by the Claude API
 
-<h3>Core Features</h3>
+### Complete Tier Backend Features
+- Firebase Authentication (email and password sign-up, sign-in, sign-out)
+- Firestore database for movies, reviews, and user profiles
+- User-specific data isolation — each user sees and manages only their own reviews
+- Secure CRUD operations tied to authenticated Firebase UIDs
+- Firestore security rules enforcing ownership on create, update, and delete
+- Field-level update whitelist preventing uid or movieId spoofing on edits
+- Graceful guest path, unauthenticated users can browse and submit guest reviews
 
-<ul>
-<li>Browse a list of movies with posters and ratings</li>
-<li>View detailed movie information</li>
-<li>Submit reviews for any movie</li>
-<li>Add custom movies not already in the list</li>
-<li>View all user-submitted movies and reviews</li>
-<li>Toggle between light and dark mode</li>
-<li>Fully responsive user interface</li>
-<li>AI-assisted review suggestions using Claude</li>
-</ul>
+---
 
-<h3>Complete Tier Backend Features</h3>
+## Tech Stack
 
-<ul>
-<li>Firebase Authentication (email and password login)</li>
-<li>Firestore database for movies and reviews</li>
-<li>User-specific data isolation</li>
-<li>Secure CRUD operations tied to authenticated users</li>
-<li>Firestore security rules enforcing ownership and read/write permissions</li>
-</ul>
+### Frontend
+- React
+- Vite
+- React Router
+- Custom CSS / CSS Modules
 
-<hr>
+### Backend
+- Firebase Authentication
+- Firebase Firestore
+- Firestore Security Rules
 
-<h2>Tech Stack</h2>
+### Tooling
+- Git and GitHub
+- Netlify (deployment)
+- Claude AI (planning, debugging, and code generation)
 
-<h3>Frontend</h3>
+---
 
-<ul>
-<li>React</li>
-<li>Vite</li>
-<li>React Router</li>
-<li>Custom CSS / CSS Modules</li>
-</ul>
+## Setup Instructions
 
-<h3>Backend</h3>
-
-<ul>
-<li>Firebase Authentication</li>
-<li>Firebase Firestore</li>
-<li>Firestore Security Rules</li>
-</ul>
-
-<h3>Tooling</h3>
-
-<ul>
-<li>Git and GitHub</li>
-<li>Netlify Deployment</li>
-<li>Claude AI (planning, debugging, and code generation)</li>
-</ul>
-
-<hr>
-
-<h2>Setup Instructions</h2>
-
-<h3>1. Clone the Repository</h3>
-
-<pre><code>
+### 1. Clone the repository
+```bash
 git clone https://github.com/Je9017962/CinaMaxReview-.git
 cd CinaMaxReview-
-</code></pre>
+```
 
-<h3>2. Install Dependencies</h3>
-
-<pre><code>
+### 2. Install dependencies
+```bash
 npm install
-</code></pre>
+```
 
-<h3>3. Add Firebase Configuration</h3>
+### 3. Add Firebase configuration
 
-<p>Create a file named <code>firebase.js</code> inside the <code>src/</code> directory and add your Firebase configuration:</p>
+Open `src/firebase.js` and replace the placeholder values with your project credentials:
 
-<pre><code>
-export const firebaseConfig = {
+```js
+const firebaseConfig = {
   apiKey: "...",
   authDomain: "...",
   projectId: "...",
@@ -110,254 +82,148 @@ export const firebaseConfig = {
   messagingSenderId: "...",
   appId: "..."
 };
-</code></pre>
+```
 
-<h3>4. Start the Development Server</h3>
+> The app will throw an "invalid API key" error on first load if placeholders are left in place.
 
-<pre><code>
+### 4. Enable Firebase services
+
+In the [Firebase console](https://console.firebase.google.com):
+- **Firestore Database** → Create database
+- **Authentication** → Sign-in method → Enable **Email/Password**
+- **Firestore Rules** → Paste the security rules from the comment block in `firebase.js`
+
+> Two composite indexes are required for compound queries. When `getReviewsByMovie()` and `getUserReviews()` run for the first time, Firestore will log a link to create each index. Click the link, wait ~60 seconds, and the queries will work.
+
+### 5. Start the development server
+```bash
 npm run dev
-</code></pre>
+```
 
-<hr>
+On first load, `getMovies()` will detect an empty `/movies` collection and batch-write 8 seed films automatically.
 
-<h2>Complete Tier Architecture Overview</h2>
+---
 
-<p>
-CinaMaxReview is structured as a modern full-stack web application with a clear
-separation between the frontend interface, authentication layer, and cloud database.
-</p>
+## Architecture Overview
 
-<h3>Frontend Architecture</h3>
+CinaMaxReview is structured as a modern full-stack web application with a clear separation between the frontend interface, authentication layer, and cloud database.
 
-<ul>
-<li><strong>App.jsx</strong> — root layout, routing, and theme management</li>
-<li><strong>MovieList.jsx</strong> — displays all movies</li>
-<li><strong>MovieDetail.jsx</strong> — shows movie information and reviews</li>
-<li><strong>ReviewForm.jsx</strong> — authenticated review submission</li>
-<li><strong>UserSubmissions.jsx</strong> — user-specific reviews</li>
-<li><strong>AuthModal.jsx</strong> — login and signup interface</li>
-<li><strong>contexts/AuthContext.jsx</strong> — global authentication state</li>
-<li><strong>firebase.js</strong> — Firebase initialization</li>
-</ul>
+### Frontend file structure
 
-<h3>Backend Architecture</h3>
+| File | Role |
+|------|------|
+| `App.jsx` | Root layout, routing, and theme management |
+| `MovieListPage.jsx` | Displays all movies; header with dynamic auth UI |
+| `MovieDetailPage.jsx` | Movie info + reviews, parallel Firestore fetches |
+| `ReviewFormPage.jsx` | Review submission; authenticated and guest paths |
+| `UserSubmissionsPage.jsx` | User's own reviews with edit/delete |
+| `AddMoviePage.jsx` | Auth-gated movie submission form |
+| `ProfilePage.jsx` | Editable profile — display name, bio, avatar emoji |
+| `AuthModal.jsx` | Sign-in and sign-up modal |
+| `UserContext.jsx` | Global auth state via Firebase `onAuthStateChanged` |
+| `firebase.js` | Firebase app initialisation; exports `db` and `auth` |
+| `firestoreService.js` | All async CRUD: movies, reviews, user profiles |
 
-<h4>Firebase Authentication</h4>
+### Authentication flow
 
-<ul>
-<li>Handles sign-up, login, and logout</li>
-<li>Provides currentUser to the application</li>
-</ul>
+1. User opens the application
+2. `UserContext` sets up a single `onAuthStateChanged` listener
+3. On session detected → fetches Firestore profile → sets `currentUser` in React state
+4. `loading` gate (`{!loading && children}`) prevents a flash of the signed-out state on refresh
+5. Auth-gated routes (`/add-movie`, `/profile`, `/my-submissions`) use an early-return pattern — no separate `PrivateRoute` wrapper needed
 
-<h4>Firestore Database</h4>
+### Data flow
 
-<ul>
-<li>Stores movie data</li>
-<li>Stores reviews tied to user IDs</li>
-<li>Enforces security rules</li>
-</ul>
-
-<hr>
-
-<h2>Database Schema (Firestore)</h2>
-
-<h3>Collection: movies</h3>
-
-<table>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-
-<tr>
-<td>id</td>
-<td>string</td>
-<td>Movie ID</td>
-</tr>
-
-<tr>
-<td>title</td>
-<td>string</td>
-<td>Movie title</td>
-</tr>
-
-<tr>
-<td>posterUrl</td>
-<td>string</td>
-<td>Poster image</td>
-</tr>
-
-<tr>
-<td>description</td>
-<td>string</td>
-<td>Movie summary</td>
-</tr>
-
-<tr>
-<td>createdAt</td>
-<td>timestamp</td>
-<td>Date added</td>
-</tr>
-</table>
-
-<h3>Collection: reviews</h3>
-
-<table>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-
-<tr>
-<td>id</td>
-<td>string</td>
-<td>Review ID</td>
-</tr>
-
-<tr>
-<td>movieId</td>
-<td>string</td>
-<td>Associated movie</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>string</td>
-<td>Firebase Auth UID</td>
-</tr>
-
-<tr>
-<td>rating</td>
-<td>number</td>
-<td>Rating from 1–5 stars</td>
-</tr>
-
-<tr>
-<td>text</td>
-<td>string</td>
-<td>Review content</td>
-</tr>
-
-<tr>
-<td>createdAt</td>
-<td>timestamp</td>
-<td>Submission date</td>
-</tr>
-</table>
-
-<h3>Collection: users</h3>
-
-<table>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-
-<tr>
-<td>uid</td>
-<td>string</td>
-<td>Firebase Auth UID</td>
-</tr>
-
-<tr>
-<td>email</td>
-<td>string</td>
-<td>User email</td>
-</tr>
-
-<tr>
-<td>createdAt</td>
-<td>timestamp</td>
-<td>Account creation date</td>
-</tr>
-</table>
-
-<hr>
-
-<h2>Authentication Flow</h2>
-
-<ol>
-<li>User opens the application</li>
-<li>AuthContext checks Firebase for an active session</li>
-</ol>
-
-<p><strong>If the user is logged in:</strong></p>
-
-<ul>
-<li>The user can submit reviews</li>
-<li>The user can view their submissions</li>
-</ul>
-
-<p><strong>If the user is logged out:</strong></p>
-
-<ul>
-<li>The review form is locked</li>
-<li>The user is prompted to sign in</li>
-</ul>
-
-<p>Firebase manages session persistence automatically.</p>
-
-<hr>
-
-<h2>Data Flow Diagram (Text-Based)</h2>
-
-<pre><code>
+```
 [User Action]
       |
       v
 [React Component]
       |
       v
-[AuthContext] ----> [Firebase Auth]
+[UserContext] ──────────────────> [Firebase Auth]
       |
       v
-[Firestore CRUD Functions]
+[firestoreService.js]
       |
       v
-[Firestore Database]
+[Firestore Database: /movies · /reviews · /users]
       |
       v
-[UI Updates with Live Data]
-</code></pre>
+[UI updates with live data]
+```
 
-<hr>
+---
 
-<h2>Known Bugs or Limitations</h2>
+## Database Schema (Firestore)
 
-<ul>
-<li>Reviews cannot currently be edited after submission</li>
-<li>Movie search is limited to the static dataset and user submissions</li>
-<li>Advanced filtering and sorting are not implemented</li>
-<li>Poster images rely on external sources</li>
-</ul>
+### `/movies`
 
-<hr>
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Movie title |
+| `year` | number | Release year |
+| `director` | string | Director name |
+| `genre` | string[] | Genre tags |
+| `synopsis` | string | Plot summary |
+| `poster` | string | Poster image URL |
+| `userAdded` | boolean | True for user-submitted films |
+| `addedByUid` | string \| null | Firebase UID of submitter |
+| `addedBy` | string | Display username of submitter |
+| `createdAt` | Timestamp | Firestore server timestamp |
 
-<h2>What I Learned</h2>
+### `/reviews`
 
-<p>
-Building CinaMaxReview helped strengthen my understanding of full-stack web
-development using React and Firebase. I learned how to structure a React
-application with clear separation between components, authentication, and
-database layers.
-</p>
+| Field | Type | Description |
+|-------|------|-------------|
+| `movieId` | string | Firestore movie document ID |
+| `stars` | number | Rating 1–5 |
+| `text` | string | Review content |
+| `uid` | string \| null | Firebase UID — null for guest reviews |
+| `username` | string | Stored at write time for display (denormalised) |
+| `displayName` | string | Display name at time of review |
+| `avatarEmoji` | string \| null | Avatar emoji at time of review |
+| `isGuest` | boolean | True for unauthenticated submissions |
+| `date` | string | Human-readable date (e.g. "Mar 15, 2026") |
+| `createdAt` | Timestamp | Firestore server timestamp |
+| `updatedAt` | Timestamp? | Set on edit |
 
-<p>
-The project also provided experience integrating Firebase Authentication and
-Firestore, writing secure database rules, and migrating data from local
-storage to a cloud database.
-</p>
+### `/users/{uid}`
 
-<p>
-Working with AI tools assisted in planning features, debugging issues, and
-refining architectural decisions. At the same time, the development process
-required evaluating suggestions and choosing appropriate implementations.
-</p>
+| Field | Type | Description |
+|-------|------|-------------|
+| `username` | string | Chosen username |
+| `email` | string | Account email address |
+| `displayName` | string | Display name (editable) |
+| `bio` | string | Profile bio |
+| `avatarEmoji` | string | Avatar emoji |
+| `joinedAt` | string | ISO date string of account creation |
 
-<p>
-This project improved my understanding of iterative development, data
-modeling, and scalable full-stack application design.
-</p>
+### Key design decisions
+
+- **UID as the ownership key** — reviews store `uid`, not `username`, so display name changes never orphan reviews
+- **Denormalised display fields** — `username` and `displayName` stored on each review at write time to avoid a second Firestore read per render; trade-off: old reviews show the name used at the time of writing
+- **Guest path** — reviews with `uid: null` preserve the experience for unauthenticated visitors; `isGuest` flag renders a "GUEST" badge in the UI
+- **Atomic seeding** — `writeBatch()` writes all 8 seed films in one atomic operation; prevents a half-seeded catalogue on slow connections
+- **`serverTimestamp()` handled safely** — both `addMovie()` and `createReview()` return `createdAt: null`; the Firebase sentinel object cannot be stored in React state, so the real `Timestamp` is read on the next Firestore fetch
+
+---
+
+## Known Bugs or Limitations
+
+- Movie search is limited to the seeded dataset and user-submitted films; no external search API integration
+- Advanced filtering and sorting (e.g. by year or rating) are not implemented
+- Poster images rely on external URLs and may break if the source removes the image
+- Display name changes do not retroactively update the `displayName` field on old reviews
+
+---
+
+## What I Learned
+
+Building CinaMaxReview strengthened my understanding of full-stack web development using React and Firebase. I learned how to structure a React application with clear separation between components, authentication context, and database service layers.
+
+The project required migrating a working localStorage prototype to a cloud-backed Firebase architecture, including rewriting the auth system from a hand-rolled SHA-256 hash to Firebase Authentication, replacing synchronous localStorage helpers with async Firestore operations across 11 files, and writing Firestore security rules that enforce ownership at the database level.
+
+Working iteratively with AI tools improved my ability to plan features before writing code, diagnose bugs systematically, and evaluate architectural suggestions critically. Key decisions, such as choosing an early-return auth gating pattern over a `PrivateRoute` abstraction, and designing the Firestore schema to use UID as the ownership key rather than username, came from evaluating trade-offs rather than accepting the first suggestion.
+
+This project improved my understanding of async data fetching, data modelling for cloud databases, security rule design, and the full arc of iterative AI-assisted development.
