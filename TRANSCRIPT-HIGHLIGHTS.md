@@ -25,28 +25,28 @@ During the Firebase migration (Entries 14 & 16 of the transcript), a full static
 - An uncleared `setTimeout` in `ReviewFormPage` causing a setState-after-unmount warning
 - Stale edit state in `UserSubmissionsPage` after a review was saved
 
-**Why it matters:** I didn't assume the generated code was correct. I treated bug-fixing as a separate, deliberate pass — sharing the code, getting a diagnosis, and verifying the fixes. This back-and-forth is exactly what collaborative debugging looks like.
+**Why it matters:** I didn't assume the generated code was correct. I treated bug-fixing as a separate, deliberate pass, sharing the code, getting a diagnosis, and verifying the fixes. This back-and-forth is exactly what collaborative debugging looks like.
 
 ---
 
 ### 3. Problem-Solving — Iterating Through Three Poster Image Approaches
 
 When movie posters weren't displaying, I didn't accept the first fix. The debugging went through three distinct attempts:
-- **Attempt 1:** Unsplash URLs — blocked by CORS/hotlink protection
-- **Attempt 2:** TMDB API — I asked Claude "Can you update this to pull the movie image?" and we set up a TMDB integration, but it returned no results for fictional movies
-- **Attempt 3:** I pushed back — "No image is shown, can we pull the movie poster from the web?" — leading to a Claude web-search approach that dynamically finds real poster URLs
+- **Attempt 1:** Unsplash URLs, blocked by CORS/hotlink protection
+- **Attempt 2:** TMDB API,  I asked Claude "Can you update this to pull the movie image?" and we set up a TMDB integration, but it returned no results for fictional movies
+- **Attempt 3:** I pushed back, "No image is shown, can we pull the movie poster from the web?" — leading to a Claude web-search approach that dynamically finds real poster URLs
 
-**Why it matters:** This shows genuine problem-solving iteration. I didn't accept broken behavior. I described the symptom, tried a fix, observed the result, and redirected — three times — until it worked.
+**Why it matters:** This shows genuine problem-solving iteration. I didn't accept broken behavior. I described the symptom, tried a fix, observed the result, and redirected, three times — until it worked.
 
 ---
 
 ### 4. Human Judgment — Choosing the Right Architecture at Each Stage
 
-When building the initial authentication system, Claude's suggestion involved a full state management pattern. I evaluated it and chose to keep auth as a simple React Context with localStorage persistence — appropriate for the prototype phase. Later, when scoping the Firebase migration, I made the deliberate decision to replace the hand-rolled SHA-256 hash + localStorage session with Firebase Authentication (Email/Password provider), and to replace the localStorage CRUD helpers with Firestore async operations.
+When building the initial authentication system, Claude's suggestion involved a full state management pattern. I evaluated it and chose to keep auth as a simple React Context with localStorage persistence, appropriate for the prototype phase. Later, when scoping the Firebase migration, I made the deliberate decision to replace the hand-rolled SHA-256 hash + localStorage session with Firebase Authentication (Email/Password provider), and to replace the localStorage CRUD helpers with Firestore async operations.
 
 I also exercised judgment on implementation details. I rejected a poster-loading approach that required users to paste a TMDB API key ("too much friction for a demo app") and opted for an automated web-search approach instead. On the Firestore migration, I chose an early-return pattern for sign-in gating (co-locating auth checks in each page component) over introducing a separate `PrivateRoute` abstraction, keeping the logic simple and readable.
 
-**Why it matters:** These decisions show I was evaluating AI output critically — weighing complexity against project scope — rather than blindly accepting whatever was generated. The progression from localStorage to Firebase also reflects deliberate architectural growth, not accidental drift.
+**Why it matters:** These decisions show I was evaluating AI output critically, weighing complexity against project scope — rather than blindly accepting whatever was generated. The progression from localStorage to Firebase also reflects deliberate architectural growth, not accidental drift.
 
 ---
 
