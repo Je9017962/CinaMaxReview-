@@ -2,6 +2,9 @@
   command = "npx vite build"
   publish = "dist"
 
+[build.environment]
+  SECRETS_SCAN_SMART_DETECTION_OMIT_VALUES = "AIzaSyBeJ5MViR0-zvD2qZRPiiBwhCZj23a5P6Q"
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
