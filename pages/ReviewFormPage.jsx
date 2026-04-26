@@ -1,8 +1,11 @@
-import { useState } from 'react'
+// pages/ReviewFormPage.jsx — Submits reviews to Firestore via createReview().
+// Reviews are tied to the authenticated user's UID when signed in.
+
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { getMovies, addReview } from '../localStorage.js'
+import { getMovies, createReview } from '../firestoreService.js'
 import { useUser } from '../UserContext.jsx'
-import { Header } from './MovieListPage.jsx'
+import { Header }  from './MovieListPage.jsx'
 import s from './ReviewForm.module.css'
 
 const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Outstanding']
@@ -10,7 +13,6 @@ const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Outstanding']
 function validate(form, isLoggedIn) {
   const errors = {}
   if (!form.movieId) errors.movieId = 'Please select a movie.'
-  // Only validate guest username if not logged in
   if (!isLoggedIn) {
     const u = form.guestName.trim()
     if (u.length > 0 && u.length < 2) errors.guestName = 'Name must be at least 2 characters.'
@@ -28,17 +30,25 @@ export default function ReviewFormPage() {
   const preselectedId      = searchParams.get('movieId') || ''
   const { currentUser }    = useUser()
 
-  const movies = getMovies()
+  const [movies,  setMovies]  = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getMovies().then((data) => {
+      setMovies(data)
+      setLoading(false)
+    })
+  }, [])
 
   const [form, setForm] = useState({
     movieId:   preselectedId,
-    guestName: '', // only used when not logged in
+    guestName: '',
     stars:     0,
     text:      '',
   })
-
   const [touched,   setTouched]   = useState({})
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [hovered,   setHovered]   = useState(0)
 
   const isLoggedIn = !!currentUser
@@ -53,25 +63,36 @@ export default function ReviewFormPage() {
     setTouched((t) => ({ ...t, stars: true }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setTouched({ movieId: true, guestName: true, stars: true, text: true })
     if (!isValid) return
 
-    // Determine display username
-    const user = isLoggedIn
-      ? currentUser.username
-      : form.guestName.trim() || '' // empty string → stored as 'Guest' in addReview
-
-    addReview({
-      movieId:  Number(form.movieId),
-      user,
-      stars:    form.stars,
-      text:     form.text.trim(),
-    })
-
-    setSubmitted(true)
-    setTimeout(() => navigate(`/movie/${form.movieId}`), 2500)
+    setSubmitting(true)
+    try {
+      await createReview(
+        {
+          // FIX: form.movieId is already a string (the Firestore doc ID from
+          // the <select> value). Do NOT wrap in Number() — Firestore document
+          // IDs are always strings, and converting to a number would make
+          // getReviewsByMovie(id) queries return 0 results on the detail page.
+          movieId:   form.movieId,
+          stars:     form.stars,
+          text:      form.text.trim(),
+          guestName: form.guestName,
+        },
+        currentUser || null
+      )
+      setSubmitted(true)
+      // FIX: store the timeout ID so it can be cleared if the component
+      // unmounts before the 2.5 s elapses (prevents setState-after-unmount).
+      const t = setTimeout(() => navigate(`/movie/${form.movieId}`), 2500)
+      return () => clearTimeout(t)
+    } catch (err) {
+      console.error('Failed to submit review:', err)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const charCount   = form.text.trim().length
@@ -109,7 +130,6 @@ export default function ReviewFormPage() {
         <h1 className={s.pageTitle}>Write a Review</h1>
         <p className={s.pageSubtitle}>Share your honest take with the CinaMaxReview community.</p>
 
-        {/* Guest notice */}
         {!isLoggedIn && (
           <div role="note" style={{ marginBottom: 24, padding: '12px 16px', borderRadius: 10, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', fontSize: 14, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
             📝 You're reviewing as a guest.{' '}
@@ -129,7 +149,7 @@ export default function ReviewFormPage() {
               value={form.movieId}
               onChange={setField('movieId')}
               onBlur={touch('movieId')}
-              disabled={!!preselectedId}
+              disabled={!!preselectedId || loading}
               style={{ opacity: preselectedId ? 0.75 : 1 }}
             >
               <option value="">— Select a film —</option>
@@ -142,7 +162,7 @@ export default function ReviewFormPage() {
             )}
           </div>
 
-          {/* Username: locked if logged in, optional text if guest */}
+          {/* Reviewer identity */}
           <div className={s.field}>
             <label className={s.label} htmlFor="reviewer-name">
               {isLoggedIn ? 'REVIEWING AS' : 'YOUR NAME (OPTIONAL)'}
@@ -225,9 +245,9 @@ export default function ReviewFormPage() {
           <button
             type="submit"
             className={s.submitBtn}
-            disabled={Object.keys(touched).length > 0 && !isValid}
+            disabled={submitting || (Object.keys(touched).length > 0 && !isValid)}
           >
-            SUBMIT REVIEW
+            {submitting ? 'Submitting…' : 'SUBMIT REVIEW'}
           </button>
         </form>
       </div>

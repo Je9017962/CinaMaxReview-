@@ -1,28 +1,33 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { getMovies, getReviews, updateReview, deleteReview } from '../localStorage.js'
-import { useUser } from '../UserContext.jsx'
-import { Header } from './MovieListPage.jsx'
-import AuthModal from '../AuthModal.jsx'
-import s from './UserSubmissions.module.css'
+// pages/UserSubmissionsPage.jsx — Loads user reviews from Firestore by UID.
+
+import { useState, useEffect } from 'react'
+import { Link }                from 'react-router-dom'
+import {
+  getMovies,
+  getUserReviews,
+  updateReview,
+  deleteReview,
+} from '../firestoreService.js'
+import { useUser }   from '../UserContext.jsx'
+import { Header }    from './MovieListPage.jsx'
+import AuthModal     from '../AuthModal.jsx'
+import s             from './UserSubmissions.module.css'
 
 const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Outstanding']
-
-const avatarBg = (name) =>
-  `hsl(${((name || '?').charCodeAt(0) * 20 + 200) % 360},55%,38%)`
 
 export default function UserSubmissionsPage() {
   const { currentUser } = useUser()
   const [showAuth, setShowAuth] = useState(false)
 
-  // Redirect guests to sign in
   if (!currentUser) {
     return (
       <div className={s.shell}>
         <Header />
         <div style={{ maxWidth: 520, margin: '80px auto', padding: '0 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>📋</div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, marginBottom: 12 }}>Sign in to see your reviews</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, marginBottom: 12 }}>
+            Sign in to see your reviews
+          </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 16, marginBottom: 28 }}>
             Your reviews are linked to your account. Sign in to view, edit, or delete them.
           </p>
@@ -41,35 +46,52 @@ export default function UserSubmissionsPage() {
   return <SubmissionsContent currentUser={currentUser} />
 }
 
+// ── Main content (signed-in) ──────────────────────────────────────────────────
 function SubmissionsContent({ currentUser }) {
-  const allMovies = getMovies()
-  const movieById = (id) => allMovies.find((m) => String(m.id) === String(id))
-
-  const [reviews,  setReviews]  = useState(() =>
-    getReviews().filter((r) => r.user === currentUser.username)
-  )
+  const [movies,  setMovies]  = useState([])
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
   const [editing,  setEditing]  = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [toast,    setToast]    = useState('')
+
+  useEffect(() => {
+    async function load() {
+      // Fetch by UID — reviews are always tied to the authenticated user's UID
+      const [movs, revs] = await Promise.all([
+        getMovies(),
+        getUserReviews(currentUser.uid),
+      ])
+      setMovies(movs)
+      setReviews(revs)
+      setLoading(false)
+    }
+    load()
+  }, [currentUser.uid])
+
+  const movieById = (id) => movies.find((m) => m.id === id)
 
   const showToast = (msg) => {
     setToast(msg)
     setTimeout(() => setToast(''), 2400)
   }
 
-  const confirmDelete = (id) => {
-    deleteReview(id)
+  const handleDelete = async (id) => {
+    await deleteReview(id)
     setReviews((prev) => prev.filter((r) => r.id !== id))
     setDeleting(null)
     showToast('Review deleted.')
   }
 
-  const handleSave = (id, stars, text) => {
-    updateReview(id, { stars, text })
+  const handleSave = async (id, stars, text) => {
+    await updateReview(id, { stars, text })
     setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, stars, text } : r)))
     setEditing(null)
     showToast('Review updated!')
   }
+
+  const avatarBg = (name) =>
+    `hsl(${((name || '?').charCodeAt(0) * 20 + 200) % 360},55%,38%)`
 
   return (
     <div className={s.shell}>
@@ -84,7 +106,7 @@ function SubmissionsContent({ currentUser }) {
           <div>
             <h1 className={s.pageTitle} style={{ margin: 0 }}>My Reviews</h1>
             <div className={s.pageSubtitle} style={{ margin: 0 }}>
-              {reviews.length} review{reviews.length !== 1 ? 's' : ''} by{' '}
+              {loading ? 'Loading…' : `${reviews.length} review${reviews.length !== 1 ? 's' : ''}`} by{' '}
               <strong style={{ color: 'var(--color-text)' }}>{currentUser.displayName || currentUser.username}</strong>
             </div>
           </div>
@@ -93,7 +115,11 @@ function SubmissionsContent({ currentUser }) {
           </Link>
         </div>
 
-        {reviews.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
+            Loading your reviews…
+          </div>
+        ) : reviews.length === 0 ? (
           <div className={s.empty}>
             <div className={s.emptyIcon}>🎬</div>
             <h3 className={s.emptyTitle}>No reviews yet</h3>
@@ -109,13 +135,12 @@ function SubmissionsContent({ currentUser }) {
                 movie={movieById(review.movieId)}
                 isEditing={editing  === review.id}
                 isDeleting={deleting === review.id}
-                canMutate={!!review.id}
                 onEdit={() => setEditing(review.id)}
                 onCancelEdit={() => setEditing(null)}
                 onSave={(stars, text) => handleSave(review.id, stars, text)}
                 onDelete={() => setDeleting(review.id)}
                 onCancelDelete={() => setDeleting(null)}
-                onConfirmDelete={() => confirmDelete(review.id)}
+                onConfirmDelete={() => handleDelete(review.id)}
               />
             ))}
           </div>
@@ -129,12 +154,21 @@ function SubmissionsContent({ currentUser }) {
   )
 }
 
-// ── ReviewCard ────────────────────────────────────────────────────────────────
-function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit, onSave, onDelete, onCancelDelete, onConfirmDelete, canMutate }) {
+// ── ReviewCard (unchanged logic, same UI) ────────────────────────────────────
+function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit, onSave, onDelete, onCancelDelete, onConfirmDelete }) {
   const [editStars,   setEditStars]   = useState(review.stars)
   const [editText,    setEditText]    = useState(review.text)
   const [editHovered, setEditHovered] = useState(0)
   const [editError,   setEditError]   = useState('')
+
+  // FIX: when the parent updates the review prop after a successful save,
+  // the local editStars/editText state is stale (still holds the old values).
+  // Syncing here ensures the next time the edit form opens it shows the
+  // most recently saved content, not whatever was there before the last edit.
+  useEffect(() => {
+    setEditStars(review.stars)
+    setEditText(review.text)
+  }, [review.stars, review.text])
 
   const handleOpenEdit = () => {
     setEditStars(review.stars)
@@ -144,9 +178,9 @@ function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit
   }
 
   const handleSave = () => {
-    if (editStars === 0)                { setEditError('Please choose a rating.'); return }
-    if (editText.trim().length < 10)    { setEditError('Review must be at least 10 characters.'); return }
-    if (editText.trim().length > 1000)  { setEditError('Review must be under 1000 characters.'); return }
+    if (editStars === 0)               { setEditError('Please choose a rating.'); return }
+    if (editText.trim().length < 10)   { setEditError('Review must be at least 10 characters.'); return }
+    if (editText.trim().length > 1000) { setEditError('Review must be under 1000 characters.'); return }
     onSave(editStars, editText.trim())
   }
 
@@ -155,8 +189,6 @@ function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit
 
   return (
     <article className={s.card}>
-
-      {/* Card header */}
       <div className={s.cardHeader}>
         <div className={s.movieInfo}>
           {movie?.poster && (
@@ -170,16 +202,10 @@ function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit
             {movie && (
               <div className={s.movieMeta}>{movie.year} · {movie.director}</div>
             )}
-            {/* Guest badge if applicable */}
-            {review.isGuest && (
-              <span style={{ fontSize: 11, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', borderRadius: 20, padding: '2px 8px', fontFamily: 'var(--font-mono)', fontWeight: 700, display: 'inline-block', marginTop: 4 }}>
-                GUEST REVIEW
-              </span>
-            )}
           </div>
         </div>
 
-        {canMutate && !isEditing && !isDeleting && (
+        {!isEditing && !isDeleting && (
           <div className={s.actions}>
             <button className={s.editBtn}   onClick={handleOpenEdit} aria-label={`Edit review for ${movie?.title}`}>Edit</button>
             <button className={s.deleteBtn} onClick={onDelete}       aria-label={`Delete review for ${movie?.title}`}>Delete</button>
@@ -222,7 +248,6 @@ function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit
             </div>
             <div className={s.starLabel}>{STAR_LABELS[editHovered || editStars]}</div>
           </div>
-
           <div>
             <textarea
               className={s.editTextarea}
@@ -232,11 +257,8 @@ function ReviewCard({ review, movie, isEditing, isDeleting, onEdit, onCancelEdit
               aria-label="Edit your review text"
             />
             <div className={`${s.editHint} ${charHintCls}`}>{charCount} / 1000</div>
-            {editError && (
-              <div role="alert" className={s.editError}>{editError}</div>
-            )}
+            {editError && <div role="alert" className={s.editError}>{editError}</div>}
           </div>
-
           <div className={s.editActions}>
             <button className={s.saveBtn}   onClick={handleSave}>SAVE CHANGES</button>
             <button className={s.cancelBtn} onClick={onCancelEdit}>Cancel</button>

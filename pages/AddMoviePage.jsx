@@ -1,9 +1,11 @@
+// pages/AddMoviePage.jsx — Saves new movies to Firestore via addMovie().
+
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { addMovie } from '../localStorage.js'
-import { useUser } from '../UserContext.jsx'
-import { Header } from './MovieListPage.jsx'
-import AuthModal from '../AuthModal.jsx'
+import { Link }     from 'react-router-dom'
+import { addMovie } from '../firestoreService.js'
+import { useUser }  from '../UserContext.jsx'
+import { Header }   from './MovieListPage.jsx'
+import AuthModal    from '../AuthModal.jsx'
 
 const GENRES = [
   'Drama', 'Romance', 'Horror', 'Thriller', 'Comedy',
@@ -28,18 +30,21 @@ function validate(form) {
 
 export default function AddMoviePage() {
   const { currentUser } = useUser()
-  const [showAuth, setShowAuth] = useState(false)
-  const [submitted, setSubmitted] = useState(null)
-  const [form, setForm] = useState({
+  const [showAuth,    setShowAuth]    = useState(false)
+  const [submitted,   setSubmitted]   = useState(null)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [form,        setForm]        = useState({
     title: '', director: '', year: '', genre: [], synopsis: '', poster: '',
   })
   const [touched, setTouched] = useState({})
-  const [submitting, setSubmitting] = useState(false)
 
-  const errors = validate({ ...form, year: Number(form.year) })
+  const errors  = validate({ ...form, year: Number(form.year) })
   const isValid = Object.keys(errors).length === 0
 
-  const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setTouched((t) => ({ ...t, [k]: true })) }
+  const set = (k) => (e) => {
+    setForm((f) => ({ ...f, [k]: e.target.value }))
+    setTouched((t) => ({ ...t, [k]: true }))
+  }
   const touch = (k) => () => setTouched((t) => ({ ...t, [k]: true }))
   const toggleGenre = (g) => {
     setForm((f) => ({
@@ -49,22 +54,31 @@ export default function AddMoviePage() {
     setTouched((t) => ({ ...t, genre: true }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setTouched({ title: true, director: true, year: true, genre: true, synopsis: true, poster: true })
-    if (!isValid) return
+    if (!isValid || submitting) return
+
     setSubmitting(true)
-    const newMovie = addMovie({
-      title: form.title.trim(),
-      director: form.director.trim(),
-      year: Number(form.year),
-      genre: form.genre,
-      synopsis: form.synopsis.trim(),
-      poster: form.poster.trim(),
-      addedBy: currentUser.username,
-    })
-    setSubmitting(false)
-    setSubmitted(newMovie)
+    try {
+      // Pass the current user so their UID is stored on the movie document
+      const newMovie = await addMovie(
+        {
+          title:    form.title.trim(),
+          director: form.director.trim(),
+          year:     Number(form.year),
+          genre:    form.genre,
+          synopsis: form.synopsis.trim(),
+          poster:   form.poster.trim(),
+        },
+        currentUser   // { uid, username, displayName, … }
+      )
+      setSubmitted(newMovie)
+    } catch (err) {
+      console.error('Failed to add movie:', err)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   // ── Success screen ────────────────────────────────────────────────────────
@@ -100,36 +114,19 @@ export default function AddMoviePage() {
             Sign in to Add a Movie
           </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 16, lineHeight: 1.65, marginBottom: 12 }}>
-            Only registered members can add new films to the catalogue. Create a free account to contribute.
-          </p>
-          <p style={{ color: 'var(--color-text-faint)', fontSize: 13, fontFamily: 'var(--font-mono)', marginBottom: 28 }}>
-            Already have an account? Sign in below.
+            Only registered members can add new films to the catalogue.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
-            <button
-              onClick={() => setShowAuth(true)}
-              style={primaryBtn}
-            >
+            <button onClick={() => setShowAuth(true)} style={primaryBtn}>
               SIGN IN / CREATE ACCOUNT
             </button>
-            <Link to="/">
-              <button style={secondaryBtn}>← BROWSE FILMS</button>
-            </Link>
+            <Link to="/"><button style={secondaryBtn}>← BROWSE FILMS</button></Link>
           </div>
-          {/* Benefit list */}
           <div style={{ marginTop: 32, padding: '20px 24px', background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 16, textAlign: 'left' }}>
-            <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-text-faint)', letterSpacing: 1, marginBottom: 14 }}>
-              MEMBER BENEFITS
-            </div>
-            {[
-              ['🎬', 'Add movies not yet in the catalogue'],
-              ['✍️', 'Write and manage your reviews'],
-              ['👤', 'Build your personal film profile'],
-              ['✏️', 'Edit or delete your past reviews'],
-            ].map(([icon, text]) => (
+            <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-text-faint)', letterSpacing: 1, marginBottom: 14 }}>MEMBER BENEFITS</div>
+            {[['🎬','Add movies to the catalogue'],['✍️','Write and manage your reviews'],['👤','Build your personal film profile'],['✏️','Edit or delete past reviews']].map(([icon, text]) => (
               <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, fontSize: 14, color: 'var(--color-text-muted)' }}>
-                <span style={{ fontSize: 18 }}>{icon}</span>
-                {text}
+                <span style={{ fontSize: 18 }}>{icon}</span>{text}
               </div>
             ))}
           </div>
@@ -139,14 +136,13 @@ export default function AddMoviePage() {
     )
   }
 
-  // ── Form (signed-in users only) ───────────────────────────────────────────
+  // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <Shell>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '48px 28px 80px' }}>
         <Link to="/" style={{ color: 'var(--color-accent)', fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
           ← Back to films
         </Link>
-
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px,4vw,34px)', margin: '20px 0 8px' }}>
           Add a Movie
         </h1>
@@ -154,38 +150,30 @@ export default function AddMoviePage() {
           Can't find a film in our catalogue? Add it yourself and be the first to review it.
         </p>
 
-        {/* Signed-in user badge */}
+        {/* Signed-in badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: 10, marginBottom: 28, fontSize: 14 }}>
           <span style={{ fontSize: 20 }}>{currentUser.avatarEmoji || '🎬'}</span>
           <span style={{ color: 'var(--color-text-muted)' }}>
             Adding as{' '}
-            <strong style={{ color: 'var(--color-success)' }}>
-              {currentUser.displayName || currentUser.username}
-            </strong>
+            <strong style={{ color: 'var(--color-success)' }}>{currentUser.displayName || currentUser.username}</strong>
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-success)' }}>
-            ✓ VERIFIED
-          </span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-success)' }}>✓ VERIFIED</span>
         </div>
 
         <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
-          {/* Title */}
           <Field label="MOVIE TITLE *" error={touched.title && errors.title}>
-            <input id="movie-title" value={form.title} onChange={set('title')} onBlur={touch('title')} placeholder="e.g. Dune: Part Three" style={inputSt(touched.title && errors.title)} />
+            <input value={form.title} onChange={set('title')} onBlur={touch('title')} placeholder="e.g. Dune: Part Three" style={inputSt(touched.title && errors.title)} />
           </Field>
 
-          {/* Director */}
           <Field label="DIRECTOR *" error={touched.director && errors.director}>
-            <input id="director" value={form.director} onChange={set('director')} onBlur={touch('director')} placeholder="e.g. Denis Villeneuve" style={inputSt(touched.director && errors.director)} />
+            <input value={form.director} onChange={set('director')} onBlur={touch('director')} placeholder="e.g. Denis Villeneuve" style={inputSt(touched.director && errors.director)} />
           </Field>
 
-          {/* Year */}
           <Field label="RELEASE YEAR *" error={touched.year && errors.year}>
-            <input id="year" value={form.year} onChange={set('year')} onBlur={touch('year')} placeholder={String(CURRENT_YEAR)} type="number" min="1888" max={CURRENT_YEAR + 2} style={{ ...inputSt(touched.year && errors.year), maxWidth: 160 }} />
+            <input value={form.year} onChange={set('year')} onBlur={touch('year')} placeholder={String(CURRENT_YEAR)} type="number" min="1888" max={CURRENT_YEAR + 2} style={{ ...inputSt(touched.year && errors.year), maxWidth: 160 }} />
           </Field>
 
-          {/* Genre */}
           <Field label="GENRE (select all that apply) *" error={touched.genre && errors.genre}>
             <div role="group" aria-label="Genres" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {GENRES.map((g) => {
@@ -205,10 +193,8 @@ export default function AddMoviePage() {
             </div>
           </Field>
 
-          {/* Synopsis */}
           <Field label="SYNOPSIS *" error={touched.synopsis && errors.synopsis}>
             <textarea
-              id="synopsis"
               value={form.synopsis}
               onChange={set('synopsis')}
               onBlur={touch('synopsis')}
@@ -221,9 +207,8 @@ export default function AddMoviePage() {
             </div>
           </Field>
 
-          {/* Poster URL (optional) */}
           <Field label="POSTER IMAGE URL (optional)" error={touched.poster && errors.poster}>
-            <input id="poster" value={form.poster} onChange={set('poster')} onBlur={touch('poster')} placeholder="https://example.com/poster.jpg" type="url" style={inputSt(touched.poster && errors.poster)} />
+            <input value={form.poster} onChange={set('poster')} onBlur={touch('poster')} placeholder="https://example.com/poster.jpg" type="url" style={inputSt(touched.poster && errors.poster)} />
             {form.poster && !errors.poster && (
               <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <img src={form.poster} alt="Poster preview" onError={(e) => (e.currentTarget.style.display = 'none')} style={{ width: 60, height: 82, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border)' }} />
@@ -245,19 +230,12 @@ export default function AddMoviePage() {
   )
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
 function Field({ label, error, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-      <label style={{ fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: 1, fontWeight: 700 }}>
-        {label}
-      </label>
+      <label style={{ fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: 1, fontWeight: 700 }}>{label}</label>
       {children}
-      {error && (
-        <span role="alert" style={{ fontSize: 13, color: 'var(--color-error)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-          ⚠ {error}
-        </span>
-      )}
+      {error && <span role="alert" style={{ fontSize: 13, color: 'var(--color-error)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>⚠ {error}</span>}
     </div>
   )
 }
@@ -271,29 +249,21 @@ function Shell({ children }) {
   )
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
 const inputSt = (hasError) => ({
   width: '100%', background: 'var(--color-input-bg)', color: 'var(--color-input-text)',
   border: `1.5px solid ${hasError ? 'var(--color-error-border)' : 'var(--color-input-border)'}`,
-  borderRadius: 10, padding: '12px 14px', fontSize: 15,
-  outline: 'none', boxSizing: 'border-box',
-  fontFamily: 'var(--font-body)',
-  boxShadow: hasError ? '0 0 0 3px rgba(185,28,28,0.1)' : 'none',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
+  borderRadius: 10, padding: '12px 14px', fontSize: 15, outline: 'none', boxSizing: 'border-box',
+  fontFamily: 'var(--font-body)', transition: 'border-color 0.2s, box-shadow 0.2s',
 })
 
 const primaryBtn = {
   background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))',
-  border: 'none', borderRadius: 12, color: '#fff',
-  padding: '13px 32px', fontSize: 14, fontWeight: 700,
-  cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
-  boxShadow: '0 4px 20px rgba(26,86,219,0.35)', transition: 'opacity 0.2s',
+  border: 'none', borderRadius: 12, color: '#fff', padding: '13px 32px',
+  fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
 }
 
 const secondaryBtn = {
   background: 'transparent', border: '1.5px solid var(--color-border-mid)',
-  borderRadius: 12, color: 'var(--color-accent)',
-  padding: '13px 32px', fontSize: 14, fontWeight: 700,
-  cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
-  textDecoration: 'none', display: 'inline-block',
+  borderRadius: 12, color: 'var(--color-accent)', padding: '13px 32px',
+  fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: 0.5,
 }

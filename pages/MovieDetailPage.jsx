@@ -1,19 +1,49 @@
+// pages/MovieDetailPage.jsx — Fetches movie + reviews from Firestore.
+
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getMovies, getReviewsByMovie } from '../localStorage.js'
-import { useUser } from '../UserContext.jsx'
-import { Header } from './MovieListPage.jsx'
+// FIX: import getMovieById instead of getMovies — fetches a single doc
+// rather than loading the entire movies collection just to find one film.
+import { getMovieById, getReviewsByMovie } from '../firestoreService.js'
+import { useUser }  from '../UserContext.jsx'
+import { Header }   from './MovieListPage.jsx'
 
 export default function MovieDetailPage() {
-  const { id }       = useParams()
-  const navigate     = useNavigate()
+  const { id }          = useParams()
+  const navigate        = useNavigate()
   const { currentUser } = useUser()
 
-  const movies    = getMovies()
-  const movie     = movies.find((m) => String(m.id) === String(id))
-  const reviews   = getReviewsByMovie(id)
+  const [movie,   setMovie]   = useState(null)
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      // FIX: parallel fetch of one movie doc + its reviews (was: all movies + reviews)
+      const [movieDoc, revs] = await Promise.all([
+        getMovieById(id),
+        getReviewsByMovie(id),
+      ])
+      setMovie(movieDoc)
+      setReviews(revs)
+      setLoading(false)
+    }
+    load()
+  }, [id])
+
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1)
     : '—'
+
+  if (loading) {
+    return (
+      <Shell>
+        <div style={{ textAlign: 'center', padding: '80px 32px', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)' }}>
+          Loading…
+        </div>
+      </Shell>
+    )
+  }
 
   if (!movie) {
     return (
@@ -29,7 +59,8 @@ export default function MovieDetailPage() {
     )
   }
 
-  const userReview = currentUser && reviews.find((r) => r.user === currentUser.username)
+  // Check if the signed-in user already reviewed this movie (by uid)
+  const userReview = currentUser && reviews.find((r) => r.uid === currentUser.uid)
 
   return (
     <Shell>
@@ -88,14 +119,13 @@ export default function MovieDetailPage() {
           {movie.synopsis}
         </p>
 
-        {/* CTA */}
         <Link to={`/submit-review?movieId=${movie.id}`}>
           <button style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 12, color: '#fff', padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, marginBottom: 40, fontFamily: 'var(--font-mono)' }}>
             {userReview ? '✏ EDIT YOUR REVIEW' : '+ WRITE A REVIEW'}
           </button>
         </Link>
 
-        {/* Reviews section */}
+        {/* Reviews */}
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 20, borderBottom: '1px solid var(--color-border)', paddingBottom: 12 }}>
           Reviews ({reviews.length})
         </h2>
@@ -105,7 +135,7 @@ export default function MovieDetailPage() {
             No reviews yet — be the first!
           </p>
         ) : (
-          reviews.map((r, i) => <ReviewCard key={`${r.id || i}`} review={r} />)
+          reviews.map((r) => <ReviewCard key={r.id} review={r} />)
         )}
       </div>
     </Shell>
@@ -113,7 +143,8 @@ export default function MovieDetailPage() {
 }
 
 function ReviewCard({ review }) {
-  const avatarBg = (name) => `hsl(${(name.charCodeAt(0) * 20 + 200) % 360},55%,38%)`
+  const avatarBg = (name) => `hsl(${((name || '?').charCodeAt(0) * 20 + 200) % 360},55%,38%)`
+  const name = review.displayName || review.username || 'Guest'
 
   return (
     <article style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 12, padding: 18, marginBottom: 12 }}>
@@ -121,14 +152,13 @@ function ReviewCard({ review }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             aria-hidden="true"
-            style={{ width: 34, height: 34, borderRadius: '50%', background: avatarBg(review.user || '?'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}
+            style={{ width: 34, height: 34, borderRadius: '50%', background: avatarBg(name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 0 }}
           >
-            {(review.user || '?')[0].toUpperCase()}
+            {review.avatarEmoji || name[0].toUpperCase()}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{review.user}</span>
-              {/* Guest badge */}
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{name}</span>
               {review.isGuest && (
                 <span style={{ fontSize: 11, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', borderRadius: 20, padding: '1px 8px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                   GUEST
@@ -138,15 +168,12 @@ function ReviewCard({ review }) {
             <div style={{ fontSize: 12, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{review.date}</div>
           </div>
         </div>
-
-        {/* Stars */}
         <div role="img" aria-label={`${review.stars} out of 5 stars`} style={{ display: 'flex', gap: 2 }}>
           {[1, 2, 3, 4, 5].map((n) => (
             <span key={n} style={{ fontSize: 16, color: n <= review.stars ? 'var(--color-star)' : 'var(--color-star-empty)' }}>★</span>
           ))}
         </div>
       </div>
-
       <p style={{ color: 'var(--color-text-muted)', fontSize: 15, lineHeight: 1.7, margin: 0 }}>
         {review.text}
       </p>

@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getMovies, getReviewsByMovie } from '../localStorage.js'
+// pages/MovieListPage.jsx — Updated to fetch movies from Firestore.
+
+import { useState, useEffect } from 'react'
+import { Link, useNavigate }   from 'react-router-dom'
+import { getMovies, getReviewsByMovie } from '../firestoreService.js'
 import ThemeToggle from '../ThemeToggle.jsx'
-import { useUser } from '../UserContext.jsx'
-import AuthModal from '../AuthModal.jsx'
+import { useUser }  from '../UserContext.jsx'
+import AuthModal    from '../AuthModal.jsx'
 
 const GENRES = [
   'All', 'Drama', 'Romance', 'Horror', 'Thriller',
@@ -11,9 +13,17 @@ const GENRES = [
 ]
 
 export default function MovieListPage() {
-  const movies  = getMovies()
+  const [movies,  setMovies]  = useState([])
+  const [loading, setLoading] = useState(true)
   const [search,  setSearch]  = useState('')
   const [filter,  setFilter]  = useState('All')
+
+  useEffect(() => {
+    getMovies().then((data) => {
+      setMovies(data)
+      setLoading(false)
+    })
+  }, [])
 
   const filtered = movies.filter((m) => {
     const q = search.toLowerCase()
@@ -40,20 +50,16 @@ export default function MovieListPage() {
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
           <Link to="/submit-review">
-            <button style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 10, color: '#fff', padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, fontFamily: 'var(--font-mono)' }}>
-              ✍ WRITE A REVIEW
-            </button>
+            <button style={heroBtnPrimary}>✍ WRITE A REVIEW</button>
           </Link>
           <Link to="/add-movie">
-            <button style={{ background: 'transparent', border: '1px solid var(--color-border-mid)', borderRadius: 10, color: 'var(--color-text-muted)', padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, fontFamily: 'var(--font-mono)' }}>
-              + ADD A MOVIE
-            </button>
+            <button style={heroBtnSecondary}>+ ADD A MOVIE</button>
           </Link>
         </div>
 
         {/* Search */}
         <div style={{ maxWidth: 480, margin: '0 auto 20px', position: 'relative' }}>
-          <label htmlFor="movie-search" className="sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
+          <label htmlFor="movie-search" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>
             Search films or directors
           </label>
           <span aria-hidden="true" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)', fontSize: 17, pointerEvents: 'none' }}>⌕</span>
@@ -83,24 +89,32 @@ export default function MovieListPage() {
 
       {/* Grid */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 28px 60px' }}>
-        {search && (
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 20, fontFamily: 'var(--font-mono)' }}>
-            Results for "<span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{search}</span>"
-            {' '}— {filtered.length} film{filtered.length !== 1 ? 's' : ''}
-          </p>
-        )}
-
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '80px 0', fontSize: 17 }}>
-            No movies match your search.{' '}
-            <Link to="/add-movie" style={{ color: 'var(--color-accent)', textDecoration: 'underline', fontWeight: 600 }}>
-              Add it yourself!
-            </Link>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', fontSize: 15 }}>
+            Loading films…
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 24 }}>
-            {filtered.map((movie) => <MovieCard key={movie.id} movie={movie} />)}
-          </div>
+          <>
+            {search && (
+              <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 20, fontFamily: 'var(--font-mono)' }}>
+                Results for "<span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{search}</span>"
+                {' '}— {filtered.length} film{filtered.length !== 1 ? 's' : ''}
+              </p>
+            )}
+
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '80px 0', fontSize: 17 }}>
+                No movies match your search.{' '}
+                <Link to="/add-movie" style={{ color: 'var(--color-accent)', textDecoration: 'underline', fontWeight: 600 }}>
+                  Add it yourself!
+                </Link>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 24 }}>
+                {filtered.map((movie) => <MovieCard key={movie.id} movie={movie} />)}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
@@ -110,7 +124,12 @@ export default function MovieListPage() {
 // ── Movie Card ────────────────────────────────────────────────────────────────
 function MovieCard({ movie }) {
   const [hovered, setHovered] = useState(false)
-  const reviews   = getReviewsByMovie(movie.id)
+  const [reviews, setReviews] = useState([])
+
+  useEffect(() => {
+    getReviewsByMovie(movie.id).then(setReviews)
+  }, [movie.id])
+
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + r.stars, 0) / reviews.length).toFixed(1)
     : '—'
@@ -170,13 +189,12 @@ export function Header() {
 
   const avatarBg = (name) => `hsl(${(name.charCodeAt(0) * 20 + 200) % 360},55%,40%)`
 
-  const handleSignOut = () => {
-    signOut()
+  const handleSignOut = async () => {
+    await signOut()
     setShowDropdown(false)
     navigate('/')
   }
 
-  // Close dropdown on outside click
   const handleDropdownBlur = (e) => {
     if (!e.currentTarget.contains(e.relatedTarget)) setShowDropdown(false)
   }
@@ -186,13 +204,11 @@ export function Header() {
       <header style={{ padding: '0 28px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-header-bg)', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(20px)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 70 }}>
 
-          {/* Logo */}
           <Link to="/" style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', fontFamily: 'var(--font-display)', textDecoration: 'none' }}>
             Cina<span style={{ color: 'var(--color-accent)' }}>Max</span>
             <span style={{ color: 'var(--color-text-faint)', fontWeight: 400, fontSize: 14 }}> Review</span>
           </Link>
 
-          {/* Nav */}
           <nav aria-label="Main navigation" style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
             {[['/', 'All Films'], ['/submit-review', 'Write Review'], ['/add-movie', '+ Add Movie']].map(([to, label]) => (
               <Link
@@ -208,7 +224,6 @@ export function Header() {
 
             <ThemeToggle />
 
-            {/* Auth area */}
             {currentUser ? (
               <div style={{ position: 'relative' }} onBlur={handleDropdownBlur}>
                 <button
@@ -232,10 +247,7 @@ export function Header() {
                       <div style={{ fontSize: 15, fontWeight: 700 }}>{currentUser.displayName || currentUser.username}</div>
                       <div style={{ fontSize: 12, color: 'var(--color-text-faint)', marginTop: 2 }}>{currentUser.email}</div>
                     </div>
-                    {[
-                      ['/profile',        '👤 My Profile'],
-                      ['/my-submissions', '📋 My Reviews'],
-                    ].map(([to, label]) => (
+                    {[['/profile', '👤 My Profile'], ['/my-submissions', '📋 My Reviews']].map(([to, label]) => (
                       <Link
                         key={to}
                         to={to}
@@ -275,4 +287,18 @@ export function Header() {
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   )
+}
+
+const heroBtnPrimary = {
+  background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))',
+  border: 'none', borderRadius: 10, color: '#fff',
+  padding: '12px 24px', fontSize: 14, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: 0.5, fontFamily: 'var(--font-mono)',
+}
+
+const heroBtnSecondary = {
+  background: 'transparent', border: '1px solid var(--color-border-mid)',
+  borderRadius: 10, color: 'var(--color-text-muted)',
+  padding: '12px 24px', fontSize: 14, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: 0.5, fontFamily: 'var(--font-mono)',
 }
