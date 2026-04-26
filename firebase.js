@@ -6,13 +6,13 @@ import { getAuth }        from 'firebase/auth'
 
 // ── Firebase project config ───────────────────────────────────────────────────
 const firebaseConfig = {
-  apiKey:            'AIzaSyBeJ5MViR0-zvD2qZRPiiBwhCZj23a5P6Q',
-  authDomain:        'cinamaxreview.firebaseapp.com',
-  projectId:         'cinamaxreview',
-  storageBucket:     'cinamaxreview.firebasestorage.app',
-  messagingSenderId: '651036595708',
-  appId:             '1:651036595708:web:76773a3625b6b947c70e79',
-  measurementId:     'G-RYN1FNQ0PN',
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
