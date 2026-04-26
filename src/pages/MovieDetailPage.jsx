@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 // FIX: import getMovieById instead of getMovies — fetches a single doc
 // rather than loading the entire movies collection just to find one film.
-import { getMovieById, getReviewsByMovie } from '../firestoreService.js'
+import { getMovieById, getReviewsByMovie, createReview } from '../firestoreService.js'
 import { useUser }  from '../UserContext.jsx'
 import { Header }   from './MovieListPage.jsx'
+import AuthModal    from '../AuthModal.jsx'
 
 export default function MovieDetailPage() {
   const { id }          = useParams()
@@ -16,6 +17,12 @@ export default function MovieDetailPage() {
   const [movie,   setMovie]   = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showAuth,    setShowAuth]    = useState(false)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewForm, setReviewForm]   = useState({ stars: 0, text: '', guestName: '' })
+  const [hoveredStar, setHoveredStar] = useState(0)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [reviewMsg,   setReviewMsg]   = useState('')
 
   useEffect(() => {
     async function load() {
@@ -61,6 +68,27 @@ export default function MovieDetailPage() {
 
   // Check if the signed-in user already reviewed this movie (by uid)
   const userReview = currentUser && reviews.find((r) => r.uid === currentUser.uid)
+
+  const handleReviewSubmit = async () => {
+    if (!reviewForm.stars) return setReviewMsg('Please choose a star rating.')
+    if (reviewForm.text.trim().length < 10) return setReviewMsg('Review must be at least 10 characters.')
+    setSubmitting(true)
+    setReviewMsg('')
+    try {
+      const saved = await createReview(
+        { movieId: movie.id, stars: reviewForm.stars, text: reviewForm.text.trim(), guestName: reviewForm.guestName },
+        currentUser || null
+      )
+      setReviews((prev) => [saved, ...prev])
+      setReviewForm({ stars: 0, text: '', guestName: '' })
+      setShowReviewForm(false)
+      setReviewMsg('')
+    } catch (err) {
+      setReviewMsg('Failed to submit. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <Shell>
@@ -119,11 +147,107 @@ export default function MovieDetailPage() {
           {movie.synopsis}
         </p>
 
-        <Link to={`/submit-review?movieId=${movie.id}`}>
-          <button style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 12, color: '#fff', padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, marginBottom: 40, fontFamily: 'var(--font-mono)' }}>
-            {userReview ? '✏ EDIT YOUR REVIEW' : '+ WRITE A REVIEW'}
-          </button>
-        </Link>
+        {/* Inline review form */}
+        {!userReview && (
+          <div style={{ marginBottom: 40 }}>
+            {!showReviewForm ? (
+              <button
+                onClick={() => setShowReviewForm(true)}
+                style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 12, color: '#fff', padding: '13px 28px', fontSize: 14, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5, fontFamily: 'var(--font-mono)' }}
+              >
+                + WRITE A REVIEW
+              </button>
+            ) : (
+              <div style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                  <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 18 }}>Write Your Review</h3>
+                  <button onClick={() => setShowReviewForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-faint)', fontSize: 20 }}>✕</button>
+                </div>
+
+                {!currentUser && (
+                  <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 10, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span>Sign in to link this to your profile</span>
+                    <button type="button" onClick={() => setShowAuth(true)} style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 8, color: '#fff', padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>SIGN IN</button>
+                  </div>
+                )}
+
+                {!currentUser && (
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 6 }}>YOUR NAME (OPTIONAL)</label>
+                    <input
+                      value={reviewForm.guestName}
+                      onChange={(e) => setReviewForm((f) => ({ ...f, guestName: e.target.value }))}
+                      placeholder='Leave blank to post as "Guest"'
+                      style={{ width: '100%', background: 'var(--color-input-bg)', border: '1.5px solid var(--color-input-border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-body)' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 8 }}>YOUR RATING</label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[1,2,3,4,5].map((n) => (
+                      <span
+                        key={n}
+                        onClick={() => setReviewForm((f) => ({ ...f, stars: n }))}
+                        onMouseEnter={() => setHoveredStar(n)}
+                        onMouseLeave={() => setHoveredStar(0)}
+                        style={{ fontSize: 28, cursor: 'pointer', color: n <= (hoveredStar || reviewForm.stars) ? 'var(--color-star)' : 'var(--color-star-empty)', transition: 'color 0.1s' }}
+                      >★</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 1, display: 'block', marginBottom: 6 }}>YOUR REVIEW</label>
+                  <textarea
+                    value={reviewForm.text}
+                    onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))}
+                    placeholder="What did you think? Be honest — no spoilers!"
+                    rows={4}
+                    style={{ width: '100%', background: 'var(--color-input-bg)', border: '1.5px solid var(--color-input-border)', borderRadius: 10, padding: '10px 14px', fontSize: 14, outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-body)', lineHeight: 1.6 }}
+                  />
+                  <div style={{ fontSize: 12, color: 'var(--color-text-faint)', fontFamily: 'var(--font-mono)', textAlign: 'right', marginTop: 2 }}>{reviewForm.text.trim().length} / 1000</div>
+                </div>
+
+                {reviewMsg && (
+                  <div role="alert" style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--color-error-bg)', color: 'var(--color-error)', fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 600, marginBottom: 14 }}>
+                    {reviewMsg}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={handleReviewSubmit}
+                    disabled={submitting}
+                    style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 10, color: '#fff', padding: '11px 24px', fontSize: 13, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-mono)', opacity: submitting ? 0.7 : 1 }}
+                  >
+                    {submitting ? 'Submitting…' : 'SUBMIT REVIEW'}
+                  </button>
+                  <button
+                    onClick={() => { setShowReviewForm(false); setReviewMsg('') }}
+                    style={{ background: 'transparent', border: '1.5px solid var(--color-border-mid)', borderRadius: 10, color: 'var(--color-text-muted)', padding: '11px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {userReview && (
+          <div style={{ marginBottom: 40, padding: '14px 18px', borderRadius: 12, background: 'var(--color-card)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              ✓ You reviewed this — <span style={{ color: 'var(--color-star)' }}>{'★'.repeat(userReview.stars)}</span>
+            </span>
+            <Link to={`/submit-review?movieId=${movie.id}`} style={{ color: 'var(--color-accent)', fontSize: 13, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+              ✏ Edit Review →
+            </Link>
+          </div>
+        )}
+
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
         {/* Reviews */}
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, marginBottom: 20, borderBottom: '1px solid var(--color-border)', paddingBottom: 12 }}>

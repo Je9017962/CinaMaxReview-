@@ -251,7 +251,7 @@ function ProfileContent({ user, updateProfile, onSignOut }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {reviews.slice(0, 5).map((r) => {
+          {reviews.map((r) => {
             const movie = movieById(r.movieId)
             return (
               <article key={r.id} style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 14, padding: '16px 18px', display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -291,11 +291,6 @@ function ProfileContent({ user, updateProfile, onSignOut }) {
             )
           })}
 
-          {reviews.length > 5 && (
-            <Link to="/my-submissions" style={{ textAlign: 'center', display: 'block', padding: 14, color: 'var(--color-accent)', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 12 }}>
-              View all {reviews.length} reviews →
-            </Link>
-          )}
         </div>
       )}
     </main>

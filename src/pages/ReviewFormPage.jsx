@@ -4,8 +4,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { getMovies, createReview } from '../firestoreService.js'
-import { useUser } from '../UserContext.jsx'
-import { Header }  from './MovieListPage.jsx'
+import { useUser }  from '../UserContext.jsx'
+import { Header }   from './MovieListPage.jsx'
+import AuthModal    from '../AuthModal.jsx'
 import s from './ReviewForm.module.css'
 
 const STAR_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Outstanding']
@@ -50,6 +51,7 @@ export default function ReviewFormPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [hovered,   setHovered]   = useState(0)
+  const [showAuth,  setShowAuth]  = useState(false)
 
   const isLoggedIn = !!currentUser
   const errors     = validate(form, isLoggedIn)
@@ -131,12 +133,18 @@ export default function ReviewFormPage() {
         <p className={s.pageSubtitle}>Share your honest take with the CinaMaxReview community.</p>
 
         {!isLoggedIn && (
-          <div role="note" style={{ marginBottom: 24, padding: '12px 16px', borderRadius: 10, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', fontSize: 14, fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            📝 You're reviewing as a guest.{' '}
-            <Link to="/" style={{ color: 'inherit', textDecoration: 'underline' }}>Sign in</Link>
-            {' '}to link this review to your account.
+          <div role="note" style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 12, background: 'var(--color-guest-bg)', border: '1px solid var(--color-guest-border)', color: 'var(--color-guest-text)', fontSize: 14, fontFamily: 'var(--font-mono)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <span>📝 Sign in to link this review to your profile — or post as a guest below.</span>
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              style={{ background: 'linear-gradient(135deg,var(--color-primary),var(--color-primary-deep))', border: 'none', borderRadius: 8, color: '#fff', padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}
+            >
+              SIGN IN / JOIN
+            </button>
           </div>
         )}
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
         <form className={s.form} onSubmit={handleSubmit} noValidate>
 
