@@ -19,10 +19,10 @@ export default function MovieListPage() {
   const [filter,  setFilter]  = useState('All')
 
   useEffect(() => {
-    getMovies().then((data) => {
-      setMovies(data)
-      setLoading(false)
-    })
+    getMovies()
+      .then((data) => setMovies(data))
+      .catch((err) => console.error('MovieListPage: failed to load movies', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = movies.filter((m) => {

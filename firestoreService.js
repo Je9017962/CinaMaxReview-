@@ -819,29 +819,29 @@ const SEED_MOVIES = [
 // MOVIES
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Synthesize a deterministic ID for a seed movie so list/detail navigation
+// works without writing the seed catalogue to Firestore. The catalogue
+// cannot be written from the client because Firestore rules require
+// authentication on /movies create.
+const seedId = (i) => `seed-${i}`
+const seedMoviesWithIds = () =>
+  SEED_MOVIES.map((m, i) => ({ id: seedId(i), ...m }))
+
 /**
- * Fetch all movies. Seeds the collection on first run if empty.
+ * Fetch all movies.
+ * If Firestore is empty or unreachable, fall back to the in-memory seed
+ * catalogue so the page is never blank for visitors.
  * Returns array of { id, ...fields }
  */
 export async function getMovies() {
-  const snap = await getDocs(moviesCol)
-
-  // Seed once when collection is empty.
-  // FIX: Build the return value directly from SEED_MOVIES + generated IDs
-  // rather than issuing a second getDocs() — avoids a race where the
-  // re-fetch runs before Firestore propagates the batch write.
-  if (snap.empty) {
-    const batch = writeBatch(db)
-    const seeded = SEED_MOVIES.map((m) => {
-      const ref = doc(moviesCol)          // generate ID client-side
-      batch.set(ref, { ...m, createdAt: serverTimestamp() })
-      return { id: ref.id, ...m }         // return without sentinel timestamp
-    })
-    await batch.commit()
-    return seeded
+  try {
+    const snap = await getDocs(moviesCol)
+    if (snap.empty) return seedMoviesWithIds()
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error('getMovies: falling back to seed catalogue', err)
+    return seedMoviesWithIds()
   }
-
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 }
 
 /**
@@ -878,6 +878,11 @@ export async function addMovie(movie, user) {
  * @returns {object|null}
  */
 export async function getMovieById(movieId) {
+  if (typeof movieId === 'string' && movieId.startsWith('seed-')) {
+    const idx = Number(movieId.slice(5))
+    const m = SEED_MOVIES[idx]
+    return m ? { id: movieId, ...m } : null
+  }
   const snap = await getDoc(doc(moviesCol, movieId))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
