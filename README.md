@@ -12,6 +12,18 @@ This project demonstrates a complete AI-assisted development workflow, including
 
 ---
 
+## Screenshots
+
+> Add screenshots here before submitting — replace these placeholders with real images.
+> Tip: Take a screenshot of the movie list, the detail page, and the dark/light mode toggle.
+> Drag images into the GitHub README editor or use: `![Alt text](./screenshots/home.png)`
+
+| Home — Movie Grid | Movie Detail | Dark Mode |
+|---|---|---|
+| *(screenshot)* | *(screenshot)* | *(screenshot)* |
+
+---
+
 ## Features
 
 ### Core Features
